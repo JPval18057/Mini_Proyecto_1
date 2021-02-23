@@ -60,9 +60,14 @@ void __interrupt() ISR(void) {
     //Revisar si se recibió algún dato
     if (PIR1bits.SSPIF==1){                
         if (slave==0){
-            recibo = SSPBUF; //leemos el dato rápidamente
+            temp = SSPBUF; //leemos el dato rápidamente
             PIR1bits.SSPIF = 0; //APAGAMOS LA BANDERA
             //slave++;
+        }
+        if (slave==1){
+            recibo = SSPBUF;
+            PIR1bits.SSPIF = 0;//APAGAMOS LA BANDERA
+            
         }
     }
     
@@ -179,7 +184,21 @@ void leer_esclavos(void){
         PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
         PORTCbits.RC1 = 1; 
         PORTCbits.RC2 = 1; 
-        //slave=1;
+        slave=1;
+    }
+    if (slave==1){
+        //ADC
+        PORTCbits.RC0 = 1;
+        PORTCbits.RC1 = 0;
+        PORTCbits.RC2 = 1;
+        SSPBUF = 0x61;//iniciamos comunicacion
+        
+        __delay_ms(100);//importante
+        //APAGAMOS TODO
+        PORTCbits.RC0 = 1;
+        PORTCbits.RC1 = 1;
+        PORTCbits.RC2 = 1;
+        slave = 0;
     }
     return;
 }
