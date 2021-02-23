@@ -46,14 +46,17 @@
 
 //PROTOTIPOS DE FUNCION
 void leer_esclavos(void);
+void Text_Uart(char *text);
 
 //Variables
 unsigned char recibo = 0;
 char s[20];
+char h[20];
 char slave = 0;
 unsigned char temp = 0;
 unsigned char push = 0;
 unsigned char push2 = 0;
+char espacio[1]={0x0D};
 
 //INTERRUPCIONES
 void __interrupt() ISR(void) {
@@ -66,6 +69,11 @@ void __interrupt() ISR(void) {
         }
         if (slave==1){
             recibo = SSPBUF;
+            PIR1bits.SSPIF = 0;//APAGAMOS LA BANDERA
+            
+        }
+        if (slave==2){
+            push = SSPBUF;
             PIR1bits.SSPIF = 0;//APAGAMOS LA BANDERA
             
         }
@@ -131,8 +139,21 @@ void setup(){
     //CONFIGURACION DE PANTALLA
     Lcd_Init();
     
-    //Pruebas de codigo
-    //PORTCbits.RC1 = 0; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+    //CONFIGURACION EUSART
+    TXSTAbits.TXEN = 1; //encendemos el módulo transmisor
+    TXSTAbits.SYNC = 0;//MODO ASINCRONO
+    RCSTAbits.SPEN = 1;
+    TXSTAbits.TX9 = 0;//TRANSMISION EN 8 BITS
+    
+    //Generador de Baud rate (9600)
+    TXSTAbits.BRGH = 0;
+    BAUDCTLbits.BRG16 = 0;
+    SPBRG = 12; //BAUD RATE DE 9615 0.16% error
+    
+    //INTERRUPCIONES DE EUSART
+    PIE1bits.TXIE = 0;//No quiero interrupciones
+    
+    
     return;
 }
 
@@ -155,6 +176,7 @@ void main(void) {
         Lcd_Write_String(s);//escribimos el dato que se recibio
         
         Lcd_Set_Cursor(2,5);
+        temp = temp +3;
         sprintf(s,"%u",temp);
         Lcd_Write_String(s);//escribimos el dato que se recibio
         
@@ -163,6 +185,13 @@ void main(void) {
         Lcd_Write_String(s);//escribimos el dato que se recibio
         
         //Mandar eusart
+        sprintf(s,"%u",recibo);
+        Text_Uart(s);
+        
+        Text_Uart(espacio);
+
+        sprintf(h,"%u",temp);
+        Text_Uart(h);
         
     }
     return;
@@ -200,5 +229,28 @@ void leer_esclavos(void){
         PORTCbits.RC2 = 1;
         slave = 0;
     }
+    if (slave==2){
+        //PUSHbuttons
+        PORTCbits.RC0 = 0;
+        PORTCbits.RC1 = 1;
+        PORTCbits.RC2 = 1;
+        SSPBUF = 0x61;//iniciamos comunicacion
+        
+        __delay_ms(100);//importante
+        //APAGAMOS TODO
+        PORTCbits.RC0 = 1;
+        PORTCbits.RC1 = 1;
+        PORTCbits.RC2 = 1;
+        SSPBUF = 0x61;//iniciamos comunicacion
+        slave = 0;
+    }
     return;
+}
+
+void Text_Uart(char *text)
+{
+  int i;
+  for(i=0;text[i]!='\0';i++){
+    TXREG = (text[i]);
+  __delay_ms(10);}
 }
