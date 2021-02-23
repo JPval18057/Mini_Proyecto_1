@@ -134,7 +134,7 @@ void setup(){
     ei();//global interrupt enable
     INTCONbits.GIE = 1;
     INTCONbits.PEIE = 1; //PERIPHERAL INTERRUPT ENABLE
-    PIE1bits.SSPIE = 1; //activar interrupcion de SPI
+    PIE1bits.SSPIE = 0; //activar interrupcion de SPI
     PIR1bits.SSPIF = 0;//apagar la bandera
     //CONFIGURACION DE PANTALLA
     Lcd_Init();
@@ -193,6 +193,9 @@ void main(void) {
         sprintf(h,"%u",temp);
         Text_Uart(h);
         
+        sprintf(s,"%u",push);
+        Text_Uart(h);
+        
     }
     return;
 }
@@ -201,14 +204,18 @@ void leer_esclavos(void){
     PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
     PORTCbits.RC1 = 1; 
     PORTCbits.RC2 = 1;     
-    if (slave==0){
+    if (slave==0){        
         //termometro funcionando
         PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
         PORTCbits.RC1 = 1; 
         PORTCbits.RC2 = 0; 
         SSPBUF = 0x61; //mandamos el dato para que se intercambien los datos
         //push = SSPBUF; //leemos el dato rápidamente
-        
+        while (SSPSTATbits.BF==1){
+            asm("NOP");//no sale de acá hasta que el registro esté vacío
+        }
+        temp = SSPBUF;
+        temp = temp -1; //tenerlo a la vista------------------------------------
         __delay_ms(100); //no tocarlo        
         PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
         PORTCbits.RC1 = 1; 
@@ -221,7 +228,10 @@ void leer_esclavos(void){
         PORTCbits.RC1 = 0;
         PORTCbits.RC2 = 1;
         SSPBUF = 0x61;//iniciamos comunicacion
-        
+        while (SSPSTATbits.BF==1){
+            asm("NOP");//no sale de acá hasta que el registro esté vacío
+        }
+        recibo = SSPBUF;
         __delay_ms(100);//importante
         //APAGAMOS TODO
         PORTCbits.RC0 = 1;
@@ -235,7 +245,10 @@ void leer_esclavos(void){
         PORTCbits.RC1 = 1;
         PORTCbits.RC2 = 1;
         SSPBUF = 0x61;//iniciamos comunicacion
-        
+        while (SSPSTATbits.BF==1){
+            asm("NOP");//no sale de acá hasta que el registro esté vacío
+        }
+        push = SSPBUF;
         __delay_ms(100);//importante
         //APAGAMOS TODO
         PORTCbits.RC0 = 1;
@@ -253,4 +266,4 @@ void Text_Uart(char *text)
   for(i=0;text[i]!='\0';i++){
     TXREG = (text[i]);
   __delay_ms(10);}
-}
+
