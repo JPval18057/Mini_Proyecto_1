@@ -50,13 +50,35 @@ void leer_esclavos(void);
 //Variables
 unsigned char recibo = 0;
 char s[20];
+char slave = 0;
+unsigned char temp = 0;
+unsigned char push = 0;
+unsigned char push2 = 0;
 
 //INTERRUPCIONES
 void __interrupt() ISR(void) {
     //Revisar si se recibió algún dato
-    if (PIR1bits.SSPIF==1){
-        recibo = SSPBUF; //leemos el dato rápidamente
-        PIR1bits.SSPIF = 0; //APAGAMOS LA BANDERA
+    if (PIR1bits.SSPIF==1){        
+        if (slave==3){
+            push2 = SSPBUF; //leemos el dato rápidamente
+            PIR1bits.SSPIF = 0; //APAGAMOS LA BANDERA
+            //slave = 0;
+        } 
+        if (slave==2){
+            push = SSPBUF; //leemos el dato rápidamente
+            PIR1bits.SSPIF = 0; //APAGAMOS LA BANDERA
+            //slave=0;
+        }        
+        if (slave==1){
+            temp = SSPBUF; //leemos el dato rápidamente
+            PIR1bits.SSPIF = 0; //APAGAMOS LA BANDERA
+            //slave++;
+        }
+        if (slave==0){
+            recibo = SSPBUF; //leemos el dato rápidamente
+            PIR1bits.SSPIF = 0; //APAGAMOS LA BANDERA
+            //slave++;
+        }
     }
     
 }
@@ -67,7 +89,7 @@ void setup(){
     TRISD = 0; //PUERTO D COMO SALIDA
     TRISD = 0; //PUERTO C COMO SALIDA
     TRISB = 0; //PUERTO B COMO SALIDA PARA PRUEBAS
-    
+    TRISA = 255; //PUERTO A COMO ENTRADA
     //CONFIGURACION DE RELOJ
     OSCCON = 0b01110101; //RELOJ INTERNO A 8MHZ
     //CONFIGURACION DE SPI
@@ -78,6 +100,7 @@ void setup(){
      SERIAL DATA IN (SDI)-> RC4 SLAVE IN MASTER OUT/ ENTRAN DATOS DEL MAESTRO
      
     */
+    TRISCbits.TRISC4 = 1; //DATA IN
     TRISCbits.TRISC0 = 0; //SS botones
     TRISCbits.TRISC1 = 0; //SS adc
     TRISCbits.TRISC2 = 0; //SS temp
@@ -136,11 +159,20 @@ void main(void) {
         Lcd_Clear(); //limpia la pantalla
         Lcd_Set_Cursor(1,1); //poner el cursor en fila 1 caracter 1
         Lcd_Write_String("POT TEM CONT");
+        
         Lcd_Set_Cursor(2,1);
         sprintf(s,"%u",recibo);
         Lcd_Write_String(s);//escribimos el dato que se recibio
-        //__delay_ms(500); //para que se aprecie en la simulación        
-        //mandar resultados en euasrt
+        
+        Lcd_Set_Cursor(2,5);
+        sprintf(s,"%u",temp);
+        Lcd_Write_String(s);//escribimos el dato que se recibio
+        
+        Lcd_Set_Cursor(2,9);
+        sprintf(s,"%u",push2);
+        Lcd_Write_String(s);//escribimos el dato que se recibio
+        
+        //Mandar eusart
         
     }
     return;
@@ -148,15 +180,66 @@ void main(void) {
 
 void leer_esclavos(void){
     PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
-    PORTCbits.RC1 = 0; 
-    PORTCbits.RC2 = 1; 
-    SSPBUF = 0x61; //mandamos el dato para que se intercambien los datos
-
-    PORTB = recibo;
-    __delay_ms(10); //no tocarlo
-    recibo = SSPBUF; //leemos el dato rápidamente
-    PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
     PORTCbits.RC1 = 1; 
     PORTCbits.RC2 = 1; 
+    if (slave==3){ //ADC
+        PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 1; 
+        PORTCbits.RC2 = 1; 
+        SSPBUF = 0x61; //mandamos el dato para que se intercambien los datos
+        recibo = SSPBUF; //leemos el dato rápidamente
+        PORTB = recibo;
+        __delay_ms(100); //no tocarlo
+        
+        PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 1; 
+        PORTCbits.RC2 = 1; 
+    }
+    if (slave==2){
+        //temperatura
+        PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 1; 
+        PORTCbits.RC2 = 0; 
+        SSPBUF = 0x61; //mandamos el dato para que se intercambien los datos
+        temp = SSPBUF; //leemos el dato rápidamente
+        //PORTB = recibo;
+        __delay_ms(100); //no tocarlo
+        
+        PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 1; 
+        PORTCbits.RC2 = 1; 
+        slave=0;
+    }
+    
+    if (slave==1){
+        //pushbuttons
+        PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 0; 
+        PORTCbits.RC2 = 1; 
+        SSPBUF = 0x61; //mandamos el dato para que se intercambien los datos
+        push = SSPBUF; //leemos el dato rápidamente
+        //PORTB = recibo;
+        __delay_ms(100); //no tocarlo
+        
+        PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 1; 
+        PORTCbits.RC2 = 1; 
+        slave++;
+    }
+    if (slave==0){
+        //pushbuttons
+        PORTCbits.RC0 = 0; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 1; 
+        PORTCbits.RC2 = 1; 
+        SSPBUF = 0x61; //mandamos el dato para que se intercambien los datos
+        push2 = SSPBUF; //leemos el dato rápidamente
+        //PORTB = recibo;
+        __delay_ms(100); //no tocarlo
+        push2 = SSPBUF; //leemos el dato rápidamente
+        PORTCbits.RC0 = 1; //SLAVE SELECT TEMP (ESTÁ NEGADO)
+        PORTCbits.RC1 = 1; 
+        PORTCbits.RC2 = 1; 
+        slave++;
+    }
     return;
 }
