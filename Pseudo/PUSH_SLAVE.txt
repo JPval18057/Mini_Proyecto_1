@@ -1,0 +1,54 @@
+//PSEUDOCODIGO PARA EL ESCLAVO DE LOS BOTONES
+
+incluir_librerias();
+
+//Variables
+boton1= 0;
+boton2 = 0;
+count = 0;
+check = 0;
+
+Interrupciones:
+if (RBIF):
+	if (RB0):
+		boton1 = 1;
+	if (RB1):
+		boton2 = 2;
+	reiniciar RBIF;
+if (SPI_interrupt_flag):
+	check = SSPBUF;
+
+setup:
+Reloj = 8MHz;
+PORTB = Entradas;
+PORTC = SPI;
+PORTD = Salidas;
+PORTA = Entradas digitales;
+//Activamos las interrupciones
+GIE = 1;
+PIE= 1;//PERIPHERAL INTERRUPT ENABLE
+RBIE = 1
+IOCB1 = 1; //ACTIVAMOS LA INTERRUPCIÓN DEL PUERTOB
+IOCB2 = 1;
+RBIF = 0;
+
+SPI_init(); //Iniciamos el módulo SPI y lo configuramos como esclavo
+Modo_esclavo();//Configuramos el módulo SPI como esclavo
+SPI_enable = 1;
+SPI_Slave = 1;
+SPI_interrupt = 1; //activamos la interrupcion del SPI
+
+
+loop:
+
+if (boton1 = 1):
+	count++;
+	boton1 = 0;
+if (boton2 = 1)
+	count--;
+	boton2 = 0;
+SSPBUF = count; //Mandamos el contador al maestro
+PORTB = count;
+
+
+

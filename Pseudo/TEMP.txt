@@ -1,0 +1,52 @@
+//Pseudocódigo del PIC de la temperatura
+
+incluir_librerias();//incluimos las librerías para que funcione el pic
+
+//Variables
+pot = 0;
+TEMP = 0;
+
+Interrupciones:
+if (ADCIF):
+	ADCIF = 0; //Reiniciamos la bandera
+	pot = ADRESl;
+	pot = pot >>1; //MAPEO PARA 1bit/°C
+if (SPI_interrupt_flag): //Revisamos la bandera del SPI
+	TEMP = SSPBUF;
+
+setup:
+PORTB = 0;
+PORTC = SPI_mode(); //PORTC configurado como puerto serial
+RELOJ = 8MHz;
+RA0 = entrada analogica;
+ADC_config(); //Configuramos el ADC, datos justificados a la Derecha
+
+
+//Interrupciones
+GIE = 1;
+PIE = 1;
+ADIE = 1;//INTERRUPCION ADC
+ADCIF = 0;//APAGAMOS LA BANDERA
+
+//SPI
+SPI_enable = 1;
+SPI_Slave = 1;
+SPI_interrupt = 1; //activamos la interrupcion del SPI
+//Para que la temperatura se aumente en 1 bit, se debe tener una referencia de 1V
+
+loop:
+if (GO/DONE==0): //LEER LA TEMPERATURA
+	__delay_us(15);
+	GO/DONE=1;
+SSPBUF = TEMP; //ALISTAR EL DATO PARA TRANSMISIÓN
+
+
+ADC_config:
+ref+ = RA4;
+ref- = VSS;
+RIGHT_JUSTIFIED = 1;
+ADC_ENABLE = 1;
+ADC_INTERRUPT = 1;
+
+
+

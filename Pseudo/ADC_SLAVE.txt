@@ -1,0 +1,54 @@
+//PSEUDOCODIGO PARA EL ESCLAVO DEL ADC
+
+incluir_librerías();
+
+//variables
+pot = 0;
+check = 0;
+
+interrupcion:
+if (ADIF):
+	pot = ADRESH; //guarda los datos en pot
+	ADIF = 0; //apaga la bandera
+if (SPI_interrupt_flag):
+	check = SSPBUF;
+
+
+setup:
+PORTB = Salida;
+PORTA = Entrada;
+RA0 = Entrada analógica;
+Reloj = 8MHz;
+ADC_config();
+Encender_ADC(Reloj); //Enciende y configura el ADC para la frecuencia de reloj
+Justificar_izquierda(); //justifica a la izquierda los datos
+
+//SPI_config
+Modo_esclavo();
+
+
+return;
+
+Loop:
+leer_datos(); //inicia la conversión del código
+mandar(); //Manda los datos por medio de SPI
+
+
+return;
+
+leer datos:
+if (GO/DONE==0):
+	__delay_us(15);
+	GO/DONE = 1;
+return;
+
+mandar:
+SSPBUF = pot;
+return;
+
+ADC_config:
+ref+ = VDD;
+ref- = VSS;
+LEFT_JUSTIFIED = 1;
+ADC_ENABLE = 1;
+ADC_INTERRUPT = 1;

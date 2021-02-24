@@ -1,0 +1,107 @@
+//PSEUDOCÓDIGO PARA EL MASTER
+
+#include "lcd.h"
+#include pic16f887
+
+
+//variables
+TEMP = 0;
+COUNT = 0;
+ADC = 0;
+s[20]; //string para caracteres
+
+setup:
+//configuracion de puerto
+RC0 = salida;
+RC1 = salida;
+RC2 = salida;
+RC6 = TX;
+RC7 = RX;
+RC5 = SERIAL DATA OUT;
+RC4 = SERIAL DATA IN;
+RC3 = SERIAL CLOCK;
+
+//PANTALLA BITS                EN   R/W  RS
+LCD_CONFIG(RD0, RD1, RD2, RD3, RD4, RD5, RD6);
+
+//EUSART
+TXEN = 1;
+TX9 = 0;//TRANSMITIR 8 BITS NADA MAS
+CREN = 1;
+SYNC = 0;
+TXIE = 0;//SIN INTERRUPCION PARA MANDAR
+
+//SPI
+SPI_ENABLE = 1;
+SPI_MASTER = 1; //CONFIGURAMOS COMO MASTER
+Fosc/4 = 1;
+clear_flags();//reiniciamos las banderas de error
+
+
+loop:
+//LEEMOS LOS DATOS
+RC0 = 1;
+RC1 = 1;
+RC2 = 1;
+
+//LEER TEMPERATURA
+RC0 = 0;
+RC1 = 1;
+RC2 = 1;
+SSPBUF = 0x061; //iniciamos la transmisión
+While (SSPSTAT.BF==0); //esperamos hasta que llegue el dato y lo leemos
+TEMP = SSPBUF;
+_delay_us(10);//esperamos un poco para que la simulacion no se atore
+
+RC0 = 1;
+RC1 = 1;
+RC2 = 1;
+
+//LEER CONTADOR
+RC0 = 0;
+RC1 = 1;
+RC2 = 1;
+SSPBUF = 0x061; //iniciamos la transmisión
+While (SSPSTAT.BF==0); //esperamos hasta que llegue el dato y lo leemos
+COUNT= SSPBUF;
+_delay_us(10);//esperamos un poco para que la simulacion no se atore
+
+RC0 = 1;
+RC1 = 1;
+RC2 = 1;
+
+//LEER ADC
+RC0 = 0;
+RC1 = 1;
+RC2 = 1;
+SSPBUF = 0x061; //iniciamos la transmisión
+While (SSPSTAT.BF==0); //esperamos hasta que llegue el dato y lo leemos
+ADC=SSPBUF;
+
+//MOSTRAMOS LOS DATOS EN LA PANTALLA
+LCD_CLEAR(); //BORRAMOS LA PANTALLA
+SET_CURSOR(1,1);
+WRITE_STRING("TEMP POT COUNT");
+
+//MOSTRAMOS TEMPERATURA
+sprintf(s,"%u",TEMP);
+SET_CURSOR(2,1);
+WRITE_STRING(S);
+
+//MOSTRAMOS ADC
+sprintf(s,"%u",ADC);
+SET_CURSOR(2,5);
+WRITE_STRING(S);
+
+//MOSTRAMOS CONTADOR
+sprintf(s,"%u",COUNT);
+SET_CURSOR(2,9);
+WRITE_STRING(S);
+
+//MANDAMOS LOS DATOS POR SERIAL
+TXREG = TEMP;
+__delay_us(5);
+TXREG = ADC;
+__delay_us(5);
+TXREG = COUNT;
+__delay_us(5);
